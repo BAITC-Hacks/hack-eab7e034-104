@@ -1,0 +1,2 @@
+# Only needed to rebuild the privacy-reduced catalog from the supplier XLSX archives.
+openpyxl>=3.1,<4
