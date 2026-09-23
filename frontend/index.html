@@ -46,7 +46,9 @@
           <div class="breadcrumbs"><span>Снабжение</span><span class="crumb-sep">/</span><strong>Пополнение склада</strong></div>
           <div class="topbar-right">
             <span class="source-date"><span class="pulse-dot"></span><span id="updated-label">Данные загружаются</span></span>
-            <button class="button button-dark" id="export-button" type="button"><span class="download-icon">↓</span>CSV на согласование</button>
+            <span id="approval-status" class="source-date">Черновик · требует подтверждения</span>
+            <button class="button button-green" id="approve-button" type="button">Утвердить план</button>
+            <button class="button button-dark" id="export-button" type="button"><span class="download-icon">↓</span>Экспорт CSV</button>
           </div>
         </header>
 
@@ -101,6 +103,7 @@
             <div class="table-tools">
               <label class="search-box"><span class="search-icon">⌕</span><input id="search-input" type="search" placeholder="Артикул или наименование" autocomplete="off" /></label>
               <label class="select-wrap"><span class="sr-only">Поставщик</span><select id="supplier-filter"><option value="all">Все поставщики</option><option value="Systeme Electric">Systeme Electric</option><option value="IEK">IEK</option></select></label>
+              <label class="select-wrap"><span class="sr-only">Категория</span><select id="category-filter"><option value="all">Все категории</option></select></label>
               <label class="select-wrap"><span class="sr-only">Срочность</span><select id="urgency-filter"><option value="all">Все приоритеты</option><option value="Срочно">Срочно</option><option value="Высокий риск">Высокий риск</option><option value="Планово">Планово</option></select></label>
             </div>
 
@@ -183,7 +186,7 @@
           </aside>
         </div>
 
-        <footer class="page-footer"><span>Рекомендации требуют подтверждения менеджера закупа.</span><span>Расчёт: спрос + сезонность + тренд − остаток − товары в пути, с MOQ.</span></footer>
+        <footer class="page-footer"><span>Менеджер может скорректировать количество, утвердить план и экспортировать подтверждённый CSV. Автоматической отправки поставщику нет.</span><span>Расчёт: спрос + сезонность + тренд − остаток − товары в пути, с MOQ.</span></footer>
       </main>
     </div>
     <div id="toast" class="toast" role="status" aria-live="polite"></div>
