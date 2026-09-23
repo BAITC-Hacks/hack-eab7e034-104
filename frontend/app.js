@@ -7,6 +7,9 @@ const state = {
   stockoutsBySku: {},
   stockoutLabel: '',
   busy: false,
+  approved: false,
+  approvedAt: null,
+  edits: {},
 };
 
 const byId = (id) => document.getElementById(id);
@@ -52,7 +55,7 @@ async function api(path, payload) {
 }
 
 function getScenario() {
-  const sku = byId('sku-input').value.trim().replace(/_+$/, '');
+  const sku = byId('sku-input').value.trim();
   return {
     supplier: byId('supplier-filter').value,
     horizon_days: Number.parseInt(byId('horizon-input').value, 10) || 30,
@@ -86,6 +89,9 @@ async function calculate() {
   setBusy(true, button, 'Расчёт обновляется');
   try {
     const result = await api('/api/recommendations', { scenario: getScenario(), stockouts_by_sku: state.stockoutsBySku });
+    state.approved = false;
+    state.approvedAt = null;
+    updateApprovalUi();
     if (state.result && JSON.stringify(state.result.scenario) !== JSON.stringify(result.scenario)) {
       state.previousScenario = state.result.scenario;
     }
@@ -111,10 +117,12 @@ function filteredRows() {
   if (!state.result) return [];
   const supplier = byId('supplier-filter').value;
   const urgency = byId('urgency-filter').value;
+  const category = byId('category-filter')?.value || 'all';
   const query = byId('search-input').value.trim().toLowerCase();
   return state.result.recommendations.filter((row) => {
     if (supplier !== 'all' && row.supplier !== supplier) return false;
     if (urgency !== 'all' && row.urgency !== urgency) return false;
+    if (category !== 'all' && String(row.category || 'Без категории') !== category) return false;
     if (query && !`${row.sku} ${row.supplier_sku} ${row.name}`.toLowerCase().includes(query)) return false;
     return true;
   });
@@ -145,12 +153,27 @@ function renderRows() {
       <td><span class="supplier-tag">${escapeHtml(row.supplier)}</span></td>
       <td class="demand-cell">${fmt(row.forecast_units, 1)} <span>${escapeHtml(row.unit)}</span></td>
       <td class="available-cell">${fmt(row.current_stock + row.in_transit, 1)}<small>остаток + в пути</small></td>
-      <td><span class="order-qty">${fmt(row.recommended_qty, 1)}</span> <span class="demand-cell">${escapeHtml(row.unit)}</span></td>
+      <td>
+        <input class="order-edit" data-sku="${escapeHtml(row.sku)}" type="number" min="0" step="1"
+          value="${escapeHtml(state.edits[row.sku] ?? row.recommended_qty)}" aria-label="Количество к заказу ${escapeHtml(row.sku)}" />
+        <span class="demand-cell">${escapeHtml(row.unit)}</span>
+      </td>
       <td><span class="urgency ${urgencyClass(row.urgency)}">${escapeHtml(row.urgency)}</span></td>
       <td><span class="row-open">›</span></td>
     </tr>`;
   }).join('');
   body.querySelectorAll('.data-row').forEach((row) => row.addEventListener('click', () => showItemDetail(row.dataset.sku)));
+  body.querySelectorAll('.order-edit').forEach((input) => {
+    input.addEventListener('click', (event) => event.stopPropagation());
+    input.addEventListener('input', (event) => {
+      event.stopPropagation();
+      const value = Math.max(0, Number(event.target.value) || 0);
+      state.edits[event.target.dataset.sku] = value;
+      state.approved = false;
+      state.approvedAt = null;
+      updateApprovalUi();
+    });
+  });
 }
 
 function renderResult(result) {
@@ -281,6 +304,8 @@ async function loadProducts() {
   const data = await api('/api/products');
   state.products = data.products || [];
   byId('sku-options').innerHTML = state.products.map((item) => `<option value="${escapeHtml(item.sku)}">${escapeHtml(`${item.supplier} · ${item.name}`)}</option>`).join('');
+  const categories = [...new Set(state.products.map((item) => String(item.category || 'Без категории')))].sort((a,b) => a.localeCompare(b, 'ru'));
+  byId('category-filter').innerHTML = '<option value="all">Все категории</option>' + categories.map((item) => `<option value="${escapeHtml(item)}">${escapeHtml(item)}</option>`).join('');
 }
 
 function parseStockoutCsv(text) {
@@ -308,20 +333,65 @@ function parseStockoutCsv(text) {
   return { result, validRows };
 }
 
+function updateApprovalUi() {
+  const status = byId('approval-status');
+  const button = byId('approve-button');
+  if (!status || !button) return;
+  if (state.approved) {
+    const time = state.approvedAt ? new Date(state.approvedAt).toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'}) : '';
+    status.textContent = `Утверждено менеджером${time ? ' · ' + time : ''}`;
+    status.classList.add('approved');
+    button.textContent = '✓ Утверждено';
+  } else {
+    status.textContent = 'Черновик · требует подтверждения';
+    status.classList.remove('approved');
+    button.textContent = 'Утвердить план';
+  }
+}
+
+function approvePlan() {
+  const rows = state.visibleRows;
+  if (!rows.length) { showToast('Нет строк для утверждения.'); return; }
+  state.approved = true;
+  state.approvedAt = new Date().toISOString();
+  const snapshot = {
+    approved_at: state.approvedAt,
+    scenario: state.result?.scenario || getScenario(),
+    items: rows.map((row) => ({
+      sku: row.sku,
+      supplier: row.supplier,
+      recommended_qty: row.recommended_qty,
+      approved_qty: Number(state.edits[row.sku] ?? row.recommended_qty),
+    })),
+  };
+  try { localStorage.setItem('stockpilot_last_approval', JSON.stringify(snapshot)); } catch {}
+  updateApprovalUi();
+  showToast(`План утверждён менеджером · ${rows.length} позиций`);
+}
+
 function exportCsv() {
   const rows = state.visibleRows;
   if (!rows.length) { showToast('Нет строк для экспорта.'); return; }
   const headers = ['Артикул 1С', 'Артикул поставщика', 'Наименование', 'Поставщик', 'Категория', 'Прогноз спроса', 'Остаток', 'В пути', 'MOQ', 'Рекомендуемое количество', 'Срочность', 'Обоснование', 'Статус согласования'];
-  const fields = ['sku', 'supplier_sku', 'name', 'supplier', 'category', 'forecast_units', 'current_stock', 'in_transit', 'moq', 'recommended_qty', 'urgency', 'explanation'];
+  const fields = ['sku', 'supplier_sku', 'name', 'supplier', 'category', 'forecast_units', 'current_stock', 'in_transit', 'moq'];
   const quote = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-  const csv = '\uFEFF' + [headers, ...rows.map((row) => [...fields.map((field) => row[field]), 'Требует ручного согласования'])].map((line) => line.map(quote).join(';')).join('\r\n');
+  const status = state.approved ? 'Утверждено менеджером' : 'Требует ручного согласования';
+  const csv = '\uFEFF' + [headers, ...rows.map((row) => [
+    ...fields.map((field) => row[field]),
+    Number(state.edits[row.sku] ?? row.recommended_qty),
+    row.urgency,
+    row.explanation,
+    status
+  ])].map((line) => line.map(quote).join(';')).join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = `plan-popolneniya-${new Date().toISOString().slice(0, 10)}.csv`;
+  link.download = `${state.approved ? 'approved-order' : 'draft-order'}-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
-  showToast(`Черновик CSV готов · ${fmt(rows.length)} строк требуют проверки`);
+  showToast(state.approved
+    ? `Утверждённый CSV готов · ${fmt(rows.length)} строк`
+    : `Черновик CSV готов · ${fmt(rows.length)} строк требуют проверки`);
 }
 
 function initEvents() {
@@ -330,10 +400,12 @@ function initEvents() {
     calculate();
   });
   byId('urgency-filter').addEventListener('change', renderRows);
+  byId('category-filter').addEventListener('change', renderRows);
   byId('search-input').addEventListener('input', renderRows);
   byId('refresh-button').addEventListener('click', calculate);
   byId('scenario-run').addEventListener('click', calculate);
   byId('export-button').addEventListener('click', exportCsv);
+  byId('approve-button').addEventListener('click', approvePlan);
   byId('agent-form').addEventListener('submit', submitAgent);
   document.querySelectorAll('.suggestion').forEach((button) => button.addEventListener('click', () => {
     byId('agent-query').value = button.dataset.prompt || '';
@@ -372,6 +444,7 @@ function initEvents() {
 
 async function start() {
   initEvents();
+  updateApprovalUi();
   try {
     state.health = await api('/api/health');
     renderSources();

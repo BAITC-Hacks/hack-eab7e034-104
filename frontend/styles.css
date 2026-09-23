@@ -283,3 +283,15 @@ tbody tr.supplier-divider td { padding-top: 8px; padding-bottom: 6px; color: #52
   .data-panel { grid-column: auto; }
   .page-footer { flex-direction: column; gap: 6px; font-size: 7px; }
 }
+
+
+/* HackAlem final demo: manager edits and approval */
+.order-edit{
+  width:92px; min-width:78px; padding:8px 10px; border-radius:8px;
+  border:1px solid var(--line, #d6ddd9); background:var(--surface, #fff);
+  color:inherit; font:inherit; font-weight:700;
+}
+.order-edit:focus{outline:2px solid rgba(29,122,88,.25);border-color:#1d7a58}
+#approval-status.approved{color:#1d7a58;font-weight:700}
+.topbar-right{flex-wrap:wrap}
+@media (max-width:900px){.topbar-right{gap:8px}.order-edit{width:78px}}
