@@ -195,7 +195,7 @@ class ReplenishmentHandler(BaseHTTPRequestHandler):
         self._send_json(404, {"error": "Маршрут API не найден."})
 
 
-def run_server(host: str = "127.0.0.1", port: int = 8000) -> None:
+def run_server(host: str = "0.0.0.0", port: int = 8000) -> None:
     try:
         server = ThreadingHTTPServer((host, port), ReplenishmentHandler)
     except OSError:
@@ -213,7 +213,7 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Supplier replenishment planner")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--host", default=os.environ.get("HOST", "0.0.0.0"))
+    parser.add_argument("--port", type=int, default=int(os.environ.get("PORT", "8000")))
     args = parser.parse_args()
     run_server(args.host, args.port)
