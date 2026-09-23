@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#10221f" />
+    <title>Пополнение склада — EKT</title>
+    <link rel="stylesheet" href="/assets/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar">
+        <div class="brand">
+          <div class="brand-mark" aria-hidden="true"><span></span><span></span><span></span></div>
+          <div>
+            <strong>e·kt</strong>
+            <span>SUPPLY INTELLIGENCE</span>
+          </div>
+        </div>
+
+        <div class="sidebar-label">РАБОЧЕЕ МЕСТО</div>
+        <nav class="navigation" aria-label="Основная навигация">
+          <a class="nav-item active" href="#plan"><span class="nav-icon">▦</span>План пополнения</a>
+          <a class="nav-item" href="#catalog"><span class="nav-icon">◫</span>Ассортимент <span id="catalog-count" class="nav-count">—</span></a>
+          <a class="nav-item" href="#data"><span class="nav-icon">⌁</span>Источники данных</a>
+        </nav>
+
+        <div class="sidebar-spacer"></div>
+
+        <section class="side-agent-card">
+          <div class="side-agent-top"><span class="pulse-dot"></span><span id="agent-status-label">Локальный режим</span></div>
+          <strong>Агент закупок</strong>
+          <p>Запустит проверенный расчёт и объяснит приоритеты.</p>
+          <a href="#agent" class="side-link">Открыть агента <span>↗</span></a>
+        </section>
+
+        <div class="sidebar-foot">
+          <span class="avatar">ЕК</span>
+          <div><strong>Отдел закупа</strong><small>Электрокомплект</small></div>
+          <span class="more">···</span>
+        </div>
+      </aside>
+
+      <main class="main-content">
+        <header class="topbar">
+          <div class="breadcrumbs"><span>Снабжение</span><span class="crumb-sep">/</span><strong>Пополнение склада</strong></div>
+          <div class="topbar-right">
+            <span class="source-date"><span class="pulse-dot"></span><span id="updated-label">Данные загружаются</span></span>
+            <button class="button button-dark" id="export-button" type="button"><span class="download-icon">↓</span>Экспорт CSV</button>
+          </div>
+        </header>
+
+        <section class="page-heading" id="plan">
+          <div>
+            <div class="eyebrow"><span class="eyebrow-line"></span>РЕШЕНИЯ ПО ЗАКУПКАМ</div>
+            <h1>План пополнения склада</h1>
+            <p>Прогноз спроса и заказ поставщикам на основе фактических выгрузок.</p>
+          </div>
+          <div class="heading-meta">
+            <span class="meta-label">Срез данных</span>
+            <strong id="as-of-date">—</strong>
+            <span id="snapshot-hint">Плановый горизонт · 30 дней</span>
+          </div>
+        </section>
+
+        <div class="status-banner" id="status-banner" hidden></div>
+
+        <section class="metrics-grid" aria-label="Сводка расчёта">
+          <article class="metric-card metric-primary">
+            <div class="metric-heading"><span>Рекомендации к заказу</span><span class="metric-symbol">↗</span></div>
+            <div class="metric-value" id="metric-positions">—</div>
+            <div class="metric-caption"><span id="metric-units">—</span> единиц суммарно</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-heading"><span>Срочно</span><span class="metric-symbol metric-red">!</span></div>
+            <div class="metric-value" id="metric-urgent">—</div>
+            <div class="metric-caption">остатка не хватит до поставки</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-heading"><span>Высокий риск</span><span class="metric-symbol metric-amber">◷</span></div>
+            <div class="metric-value" id="metric-risk">—</div>
+            <div class="metric-caption">нужна проверка закупщика</div>
+          </article>
+          <article class="metric-card">
+            <div class="metric-heading"><span>Неполные данные</span><span class="metric-symbol metric-muted">◇</span></div>
+            <div class="metric-value" id="metric-incomplete">—</div>
+            <div class="metric-caption">SKU отложены до проверки источника</div>
+          </article>
+        </section>
+
+        <div class="content-grid">
+          <section class="recommendations-panel panel" id="catalog">
+            <div class="panel-heading table-heading">
+              <div>
+                <div class="section-overline">ПЛАН ЗАКУПОК</div>
+                <h2>Позиции к пополнению <span class="count-pill" id="visible-count">—</span></h2>
+              </div>
+              <button class="icon-button" id="refresh-button" type="button" title="Пересчитать" aria-label="Пересчитать">↻</button>
+            </div>
+
+            <div class="table-tools">
+              <label class="search-box"><span class="search-icon">⌕</span><input id="search-input" type="search" placeholder="Артикул или наименование" autocomplete="off" /></label>
+              <label class="select-wrap"><span class="sr-only">Поставщик</span><select id="supplier-filter"><option value="all">Все поставщики</option><option value="Systeme Electric">Systeme Electric</option><option value="IEK">IEK</option></select></label>
+              <label class="select-wrap"><span class="sr-only">Срочность</span><select id="urgency-filter"><option value="all">Все приоритеты</option><option value="Срочно">Срочно</option><option value="Высокий риск">Высокий риск</option><option value="Планово">Планово</option></select></label>
+            </div>
+
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ТОВАР / АРТИКУЛ</th>
+                    <th>ПОСТАВЩИК</th>
+                    <th>СПРОС<br />ЗА ГОРИЗОНТ</th>
+                    <th>ДОСТУПНО</th>
+                    <th>ЗАКАЗАТЬ</th>
+                    <th>ПРИОРИТЕТ</th>
+                    <th><span class="sr-only">Открыть</span></th>
+                  </tr>
+                </thead>
+                <tbody id="recommendation-rows">
+                  <tr><td colspan="7" class="empty-cell"><span class="spinner"></span>Загружаем каталог и рассчитываем спрос…</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-footer"><span id="table-footer-text">Позиции отсортированы по риску дефицита</span><button class="text-button" id="show-incomplete" type="button">Проверить неполные данные <span>→</span></button></div>
+            <div class="item-detail" id="item-detail" hidden></div>
+          </section>
+
+          <aside class="right-rail">
+            <section class="agent-panel panel" id="agent">
+              <div class="agent-header">
+                <div class="agent-avatar"><span class="sparkle">✳</span></div>
+                <div><div class="section-overline">AI ЗАКУПОЧНЫЙ АГЕНТ</div><h2>Что проверить?</h2></div>
+                <span id="agent-mode-badge" class="mode-badge">DEMO</span>
+              </div>
+              <p class="agent-copy">Опишите сценарий. Агент выберет поставщика и горизонт, запустит расчёт и объяснит результат.</p>
+              <form id="agent-form">
+                <label class="sr-only" for="agent-query">Запрос агенту</label>
+                <textarea id="agent-query" rows="3" maxlength="1200" placeholder="Например: какие позиции IEK нужно заказать в ближайшие 45 дней при росте спроса на 15%?">Покажи срочные позиции IEK на 30 дней</textarea>
+                <div class="agent-form-bottom"><span class="privacy-note">Расчёт проверяется бизнес-правилами</span><button class="button button-green" id="agent-submit" type="submit">Запустить <span>→</span></button></div>
+              </form>
+              <div class="suggestion-row"><button type="button" class="suggestion" data-prompt="Покажи срочные позиции IEK на 30 дней">Срочное по IEK</button><button type="button" class="suggestion" data-prompt="Пересчитай на 45 дней при росте спроса на 15%">Рост +15%</button></div>
+              <div class="agent-result" id="agent-result" hidden>
+                <div class="agent-result-label"><span class="result-check">✓</span><span id="agent-result-title">Расчёт проверен</span></div>
+                <div id="agent-answer" class="agent-answer"></div>
+                <div class="agent-trace" id="agent-trace"></div>
+              </div>
+            </section>
+
+            <section class="scenario-panel panel">
+              <button class="scenario-toggle" id="scenario-toggle" aria-expanded="false" type="button">
+                <span class="scenario-icon">⌘</span><span><strong>Что если?</strong><small>Измените условия и пересчитайте</small></span><span class="toggle-chevron">⌄</span>
+              </button>
+              <div class="scenario-body" id="scenario-body" hidden>
+                <label class="field-label" for="horizon-input">Срок поставки, дней <span>допущение</span></label>
+                <input id="horizon-input" class="number-input" type="number" min="1" max="180" step="1" value="30" />
+                <label class="field-label" for="demand-input">Изменение спроса, %</label>
+                <div class="range-field"><input id="demand-range" type="range" min="-50" max="200" value="0" /><output id="demand-value">0%</output></div>
+                <label class="field-label" for="sku-input">SKU для сценария <span>необязательно</span></label>
+                <input id="sku-input" class="number-input text-input" list="sku-options" placeholder="Начните вводить артикул" autocomplete="off" />
+                <datalist id="sku-options"></datalist>
+                <div class="scenario-pair">
+                  <label><span class="field-label">Изм. остатка</span><input id="stock-delta" class="number-input" type="number" value="0" step="1" /></label>
+                  <label><span class="field-label">Изм. в пути</span><input id="inbound-delta" class="number-input" type="number" value="0" step="1" /></label>
+                </div>
+                <label class="field-label" for="stockout-days">Дней отсутствия товара <span>симуляция текущего месяца</span></label>
+                <input id="stockout-days" class="number-input" type="number" min="0" max="31" value="0" />
+                <div class="csv-upload">
+                  <label class="field-label" for="stockout-file">Загрузить периоды stockout из CSV</label>
+                  <input id="stockout-file" type="file" accept=".csv,text/csv" />
+                  <span id="stockout-file-note" class="micro-copy">Формат: sku,month,days_out</span>
+                </div>
+                <button class="button button-green full-width" id="scenario-run" type="button">Пересчитать сценарий</button>
+              </div>
+            </section>
+
+            <section class="data-panel panel" id="data">
+              <div class="data-panel-heading"><div><div class="section-overline">ПРОИСХОЖДЕНИЕ ДАННЫХ</div><h2>Выгрузки поставщиков</h2></div><span class="data-lock" title="Обезличенный каталог">◇</span></div>
+              <div id="source-cards" class="source-list"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
+              <div class="data-quality" id="data-quality"></div>
+            </section>
+          </aside>
+        </div>
+
+        <footer class="page-footer"><span>Рекомендации требуют подтверждения менеджера закупа.</span><span>Расчёт: спрос + сезонность + тренд − остаток − товары в пути, с MOQ.</span></footer>
+      </main>
+    </div>
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/assets/app.js" defer></script>
+  </body>
+</html>
