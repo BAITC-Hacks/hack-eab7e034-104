@@ -119,18 +119,20 @@ function filteredRows() {
 function renderRows() {
   const rows = filteredRows();
   state.visibleRows = rows;
-  const limit = 200;
-  const shown = rows.slice(0, limit);
   byId('visible-count').textContent = fmt(rows.length);
-  byId('table-footer-text').textContent = rows.length > limit
-    ? `Показаны первые ${fmt(limit)} из ${fmt(rows.length)} позиций · отсортировано по риску дефицита`
-    : 'Позиции отсортированы по риску дефицита';
+  byId('table-footer-text').textContent = `Показаны все ${fmt(rows.length)} позиций · группировка по поставщику · внутри группы сначала позиции с высоким риском`;
   const body = byId('recommendation-rows');
-  if (!shown.length) {
+  if (!rows.length) {
     body.innerHTML = '<tr><td colspan="7" class="empty-cell">Для выбранных условий заказ не требуется. Проверьте сценарий или фильтры.</td></tr>';
     return;
   }
-  body.innerHTML = shown.map((row) => `
+  let previousSupplier = '';
+  body.innerHTML = rows.map((row) => {
+    const supplierHeader = row.supplier !== previousSupplier
+      ? `<tr class="supplier-divider"><td colspan="7">${escapeHtml(row.supplier)}</td></tr>`
+      : '';
+    previousSupplier = row.supplier;
+    return `${supplierHeader}
     <tr class="data-row" data-sku="${escapeHtml(row.sku)}">
       <td class="product-cell">
         <div class="product-name" title="${escapeHtml(row.name)}">${escapeHtml(row.name || row.sku)}</div>
@@ -142,7 +144,8 @@ function renderRows() {
       <td><span class="order-qty">${fmt(row.recommended_qty, 1)}</span> <span class="demand-cell">${escapeHtml(row.unit)}</span></td>
       <td><span class="urgency ${urgencyClass(row.urgency)}">${escapeHtml(row.urgency)}</span></td>
       <td><span class="row-open">›</span></td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   body.querySelectorAll('.data-row').forEach((row) => row.addEventListener('click', () => showItemDetail(row.dataset.sku)));
 }
 
@@ -352,3 +355,4 @@ async function start() {
 }
 
 start();
+
