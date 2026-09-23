@@ -547,7 +547,7 @@ def run_openai_agent(query: str, catalog: dict, base_scenario: dict, api_key: st
         "Не показывай внутреннюю цепочку рассуждений."
     )
     first = _api_request({
-        "model": os.environ.get("OPENAI_MODEL", "gpt-5.6-terra"),
+        "model": os.environ.get("OPENAI_MODEL", "gpt-5.6-luna"),
         "instructions": instructions,
         "input": (
             f"Запрос менеджера: {query}\nТекущий интерфейсный сценарий: {json.dumps(base_scenario, ensure_ascii=False)}\n"
