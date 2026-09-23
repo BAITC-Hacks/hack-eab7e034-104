@@ -183,7 +183,10 @@ class ReplenishmentHandler(BaseHTTPRequestHandler):
             if len(query) > 1200:
                 self._send_json(400, {"error": "Запрос слишком длинный. Ограничение — 1 200 символов."})
                 return
-            result = run_agent(query, CATALOG, scenario, ROOT)
+            baseline_scenario = payload.get("baseline_scenario") if isinstance(payload.get("baseline_scenario"), dict) else None
+            if baseline_scenario is not None:
+                baseline_scenario = {**baseline_scenario, "stockouts_by_sku": stockouts}
+            result = run_agent(query, CATALOG, scenario, ROOT, baseline_scenario)
             result["result"]["warnings"].extend(stockout_warnings)
             latency = round((time.perf_counter() - started) * 1000)
             LOGGER.info("event=agent mode=%s tool=%s rows=%s latency_ms=%s", result.get("mode"), result.get("tool"), len(result["result"]["recommendations"]), latency)
@@ -214,3 +217,4 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=8000)
     args = parser.parse_args()
     run_server(args.host, args.port)
+

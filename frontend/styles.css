@@ -178,6 +178,8 @@ tbody tr.supplier-divider td { padding-top: 8px; padding-bottom: 6px; color: #52
 .agent-result-label { display: flex; align-items: center; gap: 6px; color: #426c4e; font-size: 8px; font-weight: 700; }
 .result-check { display: grid; place-items: center; width: 14px; height: 14px; border-radius: 50%; color: white; background: #6e9d66; font-size: 8px; }
 .agent-answer { margin-top: 7px; color: #5d6d63; font-size: 8px; line-height: 1.55; white-space: pre-line; }
+.agent-facts { display: grid; gap: 5px; margin: 8px 0 0; padding: 8px 0 0 14px; border-top: 1px solid #e5eee1; color: #52665a; font-size: 8px; line-height: 1.5; }
+.agent-facts li::marker { color: #79a16c; }
 .agent-trace { margin-top: 8px; padding-top: 7px; border-top: 1px solid #e5eee1; color: #87958a; font-size: 7px; }
 .agent-trace span { color: #4c7655; font-weight: 600; }
 
@@ -281,3 +283,4 @@ tbody tr.supplier-divider td { padding-top: 8px; padding-bottom: 6px; color: #52
   .data-panel { grid-column: auto; }
   .page-footer { flex-direction: column; gap: 6px; font-size: 7px; }
 }
+
