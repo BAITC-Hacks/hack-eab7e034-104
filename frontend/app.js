@@ -166,6 +166,19 @@ function renderResult(result) {
   renderRows();
 }
 
+function applyScenarioToControls(scenario) {
+  if (!scenario) return;
+  byId('supplier-filter').value = scenario.supplier || 'all';
+  byId('horizon-input').value = scenario.horizon_days || 30;
+  const demandPercent = Math.round(((scenario.demand_multiplier || 1) - 1) * 100);
+  byId('demand-range').value = String(demandPercent);
+  byId('demand-value').value = `${demandPercent}%`;
+  byId('sku-input').value = scenario.selected_sku || '';
+  byId('stock-delta').value = scenario.stock_delta || 0;
+  byId('inbound-delta').value = scenario.inbound_delta || 0;
+  byId('stockout-days').value = scenario.stockout_days || 0;
+}
+
 function showItemDetail(sku) {
   const row = state.result?.recommendations.find((item) => item.sku === sku);
   const detail = byId('item-detail');
@@ -192,6 +205,10 @@ function renderAgentResult(payload) {
   box.hidden = false;
   const result = payload.result;
   renderResult(result);
+  if (payload.intent === 'compare_replenishment_scenarios') {
+    state.previousScenario = payload.details?.baseline?.scenario || state.previousScenario;
+    applyScenarioToControls(result.scenario);
+  }
   byId('agent-answer').textContent = payload.answer || 'Расчёт выполнен.';
   const facts = Array.isArray(payload.facts) ? payload.facts : [];
   const factList = byId('agent-facts');
