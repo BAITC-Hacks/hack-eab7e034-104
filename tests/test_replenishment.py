@@ -88,6 +88,12 @@ class ForecastTests(unittest.TestCase):
 
 
 class ReplenishmentTests(unittest.TestCase):
+    def test_recommendations_are_grouped_by_supplier(self):
+        systeme = product(sku="SYS-1", supplier="Systeme Electric")
+        result = calculate_recommendations({"as_of_date": "2026-09-22", "products": [systeme, product()]})
+        suppliers = [row["supplier"] for row in result["recommendations"]]
+        self.assertEqual(suppliers, sorted(suppliers))
+
     def test_in_transit_reduces_order_quantity(self):
         baseline = recommendation(calculate_recommendations(catalog(product())))
         with_inbound = recommendation(calculate_recommendations(catalog(product(in_transit=25.0))))

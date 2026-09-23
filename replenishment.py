@@ -391,7 +391,7 @@ def calculate_recommendations(catalog: dict, scenario: dict | None = None) -> di
             "moq_known": bool(product.get("moq_known", False)),
         })
 
-    recommendations.sort(key=lambda row: (URGENCY_ORDER.get(row["urgency"], 9), -row["recommended_qty"], row["supplier"], row["sku"]))
+    recommendations.sort(key=lambda row: (row["supplier"], URGENCY_ORDER.get(row["urgency"], 9), -row["recommended_qty"], row["sku"]))
     by_supplier = {}
     for supplier in sorted(suppliers):
         rows = [row for row in recommendations if row["supplier"] == supplier]

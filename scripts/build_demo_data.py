@@ -440,12 +440,12 @@ def build_catalog(systeme: Path, iek: Path) -> dict:
         "data_mode": "supplier_report_aggregates",
         "sources": source_summaries,
         "data_limits": [
-            "No anonymized client_id column was present. Large orders are grouped by invoice number and SKU, not by client.",
-            "The supplied reports do not contain recorded stockout periods. Stockout CSV upload and what-if inputs are supported separately.",
-            "The transaction ledgers do not include sale price. Recommendations are in item units, not currency.",
-            "Supplier lead times are absent. The app uses a visible, editable planning assumption.",
-            "IEK on-hand stock uses the September 2026 beginning-balance snapshot. Systeme Electric uses the free-stock figure from its 2026-09-22 summary.",
-            "IEK has no explicit product-category field. Products without a matching MOQ row use a visible 1-unit fallback.",
+            "В выгрузках нет обезличенного client_id. Крупные продажи выявляются по номеру документа и SKU, без группировки по клиенту.",
+            "В исходных данных нет истории stockout. Корректировку можно загрузить через CSV или задать в сценарии «Что если?».",
+            "В журналах нет цены продажи. Рекомендации рассчитаны в единицах товара, без денежной оценки.",
+            "Сроки поставки не переданы. Горизонт расчёта — видимое и редактируемое допущение менеджера.",
+            "Остаток IEK взят на начало сентября 2026 года; Systeme Electric — свободный остаток из отчёта на 22.09.2026.",
+            "Для IEK не передана категория товара. Если MOQ отсутствует в выгрузке, используется 1 единица с пометкой в обосновании.",
         ],
         "products": all_products,
     }
