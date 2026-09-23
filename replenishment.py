@@ -87,7 +87,7 @@ def _growth(adjusted: list[tuple[str, float]], horizon_days: int) -> float:
     return max(0.7, min(1.35, factor))
 
 
-def _clean_monthly_sales(product: dict, as_of: date) -> tuple[list[tuple[str, float]], dict[str, float]]:
+def _clean_monthly_sales(product: dict, as_of: date) -> tuple[list[tuple[str, float]], dict[str, float], dict[str, dict[str, float]]]:
     raw_months = product.get("monthly_sales") or {}
     ordered = sorted(
         (period, max(0.0, _finite_number(value)))
@@ -95,9 +95,10 @@ def _clean_monthly_sales(product: dict, as_of: date) -> tuple[list[tuple[str, fl
         if _month(period) and _month(period) <= (as_of.year, as_of.month)
     )
     if not ordered:
-        return [], {}
+        return [], {}, {}
 
     removals: dict[str, float] = {}
+    adjustment_details: dict[str, dict[str, float]] = {}
     event_adjustments = product.get("one_off_adjustments") or {}
     post_event: list[tuple[str, float]] = []
     for period, value in ordered:
@@ -105,6 +106,7 @@ def _clean_monthly_sales(product: dict, as_of: date) -> tuple[list[tuple[str, fl
         remaining = max(0.0, value - removed)
         if removed > 0:
             removals[period] = removed
+            adjustment_details.setdefault(period, {})["source_adjustment_units"] = removed
         year, month = _month(period)
         if year == as_of.year and month == as_of.month:
             # The supplied September reports are dated Sep 22, so their current
@@ -113,6 +115,7 @@ def _clean_monthly_sales(product: dict, as_of: date) -> tuple[list[tuple[str, fl
             remaining *= _month_days(year, month) / covered_days
             if removed > 0:
                 removals[period] = min(value, removed * _month_days(year, month) / covered_days)
+                adjustment_details.setdefault(period, {})["source_adjustment_units"] = removals[period]
         post_event.append((period, remaining))
 
     positive = [value for _period, value in post_event if value > 0]
@@ -130,12 +133,14 @@ def _clean_monthly_sales(product: dict, as_of: date) -> tuple[list[tuple[str, fl
                 cap = overall_median * 2.0
             cap = max(1.0, cap)
             if value > cap:
-                removals[period] = removals.get(period, 0.0) + (value - cap)
+                capped_units = value - cap
+                removals[period] = removals.get(period, 0.0) + capped_units
+                adjustment_details.setdefault(period, {})["spike_cap_units"] = capped_units
                 caps.append((period, cap))
             else:
                 caps.append((period, value))
         post_event = caps
-    return post_event, removals
+    return post_event, removals, adjustment_details
 
 
 def _stockout_adjustments(
@@ -170,7 +175,7 @@ def forecast_demand(
     demand_multiplier: float = 1.0,
     stockout_months: dict[str, int] | None = None,
 ) -> dict:
-    adjusted, removals = _clean_monthly_sales(product, as_of)
+    adjusted, removals, adjustment_details = _clean_monthly_sales(product, as_of)
     adjusted, stockout_compensation = _stockout_adjustments(adjusted, stockout_months or {}, as_of)
     history_values = [value for _period, value in adjusted]
     usable = history_values[-24:]
@@ -182,6 +187,7 @@ def forecast_demand(
             "anomaly_removed_units": round(sum(removals.values()), 3),
             "stockout_compensation_units": round(stockout_compensation, 3),
             "monthly_adjustments": removals,
+            "monthly_adjustment_details": adjustment_details,
         }
     base_month = _linear_mean(usable)
     growth_factor = _growth(adjusted, horizon_days)
@@ -206,6 +212,7 @@ def forecast_demand(
         "anomaly_removed_units": round(sum(removals.values()), 3),
         "stockout_compensation_units": round(stockout_compensation * multiplier, 3),
         "monthly_adjustments": removals,
+        "monthly_adjustment_details": adjustment_details,
     }
 
 
@@ -384,6 +391,19 @@ def calculate_recommendations(catalog: dict, scenario: dict | None = None) -> di
             "seasonality_factor": forecast["seasonality_factor"],
             "growth_factor": forecast["growth_factor"],
             "anomaly_removed_units": forecast["anomaly_removed_units"],
+            "anomaly_adjustments": [
+                {
+                    "month": period,
+                    "units": round(units, 3),
+                    "reason": reason,
+                }
+                for period, split in sorted(forecast["monthly_adjustment_details"].items())
+                for field, reason in (
+                    ("source_adjustment_units", "разовая продажа отмечена в исходной выгрузке"),
+                    ("spike_cap_units", "автоматическое ограничение месячного пика"),
+                )
+                if (units := split.get(field, 0.0)) > 0
+            ],
             "stockout_compensation_units": forecast["stockout_compensation_units"],
             "stock_basis": product.get("stock_basis", ""),
             "stock_snapshot": product.get("stock_snapshot", ""),

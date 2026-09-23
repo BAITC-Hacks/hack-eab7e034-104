@@ -2,6 +2,7 @@ const state = {
   health: null,
   products: [],
   result: null,
+  previousScenario: null,
   visibleRows: [],
   stockoutsBySku: {},
   stockoutLabel: '',
@@ -85,6 +86,9 @@ async function calculate() {
   setBusy(true, button, 'Расчёт обновляется');
   try {
     const result = await api('/api/recommendations', { scenario: getScenario(), stockouts_by_sku: state.stockoutsBySku });
+    if (state.result && JSON.stringify(state.result.scenario) !== JSON.stringify(result.scenario)) {
+      state.previousScenario = state.result.scenario;
+    }
     renderResult(result);
     renderAgentResult(null);
     showBanner(result.warnings?.join(' ') || '', result.warnings?.length ? 'warning' : 'success');
@@ -162,6 +166,19 @@ function renderResult(result) {
   renderRows();
 }
 
+function applyScenarioToControls(scenario) {
+  if (!scenario) return;
+  byId('supplier-filter').value = scenario.supplier || 'all';
+  byId('horizon-input').value = scenario.horizon_days || 30;
+  const demandPercent = Math.round(((scenario.demand_multiplier || 1) - 1) * 100);
+  byId('demand-range').value = String(demandPercent);
+  byId('demand-value').value = `${demandPercent}%`;
+  byId('sku-input').value = scenario.selected_sku || '';
+  byId('stock-delta').value = scenario.stock_delta || 0;
+  byId('inbound-delta').value = scenario.inbound_delta || 0;
+  byId('stockout-days').value = scenario.stockout_days || 0;
+}
+
 function showItemDetail(sku) {
   const row = state.result?.recommendations.find((item) => item.sku === sku);
   const detail = byId('item-detail');
@@ -188,9 +205,17 @@ function renderAgentResult(payload) {
   box.hidden = false;
   const result = payload.result;
   renderResult(result);
+  if (payload.intent === 'compare_replenishment_scenarios') {
+    state.previousScenario = payload.details?.baseline?.scenario || state.previousScenario;
+    applyScenarioToControls(result.scenario);
+  }
   byId('agent-answer').textContent = payload.answer || 'Расчёт выполнен.';
+  const facts = Array.isArray(payload.facts) ? payload.facts : [];
+  const factList = byId('agent-facts');
+  factList.innerHTML = facts.map((fact) => `<li>${escapeHtml(fact)}</li>`).join('');
+  factList.hidden = facts.length === 0;
   byId('agent-result-title').textContent = payload.mode === 'openai' ? 'Агент проверил расчёт' : 'Локальный расчёт проверен';
-  byId('agent-trace').innerHTML = `Шаги: запрос → <span>${escapeHtml(payload.tool || 'расчётный инструмент')}</span> → проверка правил → рекомендации${payload.latency_ms ? ` · ${fmt(payload.latency_ms)} мс` : ''}`;
+  byId('agent-trace').innerHTML = `Шаги: запрос → <span>${escapeHtml(payload.tool || 'расчётный инструмент')}</span> → проверка правил → результат для менеджера${payload.latency_ms ? ` · ${fmt(payload.latency_ms)} мс` : ''}`;
   if (payload.warning) showBanner(payload.warning, 'warning');
   else if (result.warnings?.length) showBanner(result.warnings.join(' '), 'warning');
   else showBanner('', 'success');
@@ -204,7 +229,12 @@ async function submitAgent(event) {
   setBusy(true, button, 'Агент анализирует');
   byId('agent-result').hidden = true;
   try {
-    const payload = await api('/api/agent', { query, scenario: getScenario(), stockouts_by_sku: state.stockoutsBySku });
+    const payload = await api('/api/agent', {
+      query,
+      scenario: getScenario(),
+      baseline_scenario: state.previousScenario || state.result?.scenario || getScenario(),
+      stockouts_by_sku: state.stockoutsBySku,
+    });
     renderAgentResult(payload);
     const badge = byId('agent-mode-badge');
     if (payload.mode === 'openai') {
@@ -281,17 +311,17 @@ function parseStockoutCsv(text) {
 function exportCsv() {
   const rows = state.visibleRows;
   if (!rows.length) { showToast('Нет строк для экспорта.'); return; }
-  const headers = ['Артикул 1С', 'Артикул поставщика', 'Наименование', 'Поставщик', 'Категория', 'Прогноз спроса', 'Остаток', 'В пути', 'MOQ', 'Рекомендуемое количество', 'Срочность', 'Обоснование'];
+  const headers = ['Артикул 1С', 'Артикул поставщика', 'Наименование', 'Поставщик', 'Категория', 'Прогноз спроса', 'Остаток', 'В пути', 'MOQ', 'Рекомендуемое количество', 'Срочность', 'Обоснование', 'Статус согласования'];
   const fields = ['sku', 'supplier_sku', 'name', 'supplier', 'category', 'forecast_units', 'current_stock', 'in_transit', 'moq', 'recommended_qty', 'urgency', 'explanation'];
   const quote = (value) => `"${String(value ?? '').replace(/"/g, '""')}"`;
-  const csv = '\uFEFF' + [headers, ...rows.map((row) => fields.map((field) => row[field]))].map((line) => line.map(quote).join(';')).join('\r\n');
+  const csv = '\uFEFF' + [headers, ...rows.map((row) => [...fields.map((field) => row[field]), 'Требует ручного согласования'])].map((line) => line.map(quote).join(';')).join('\r\n');
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
   link.download = `plan-popolneniya-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(link.href);
-  showToast(`Экспортировано строк: ${fmt(rows.length)}`);
+  showToast(`Черновик CSV готов · ${fmt(rows.length)} строк требуют проверки`);
 }
 
 function initEvents() {

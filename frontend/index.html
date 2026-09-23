@@ -46,7 +46,7 @@
           <div class="breadcrumbs"><span>Снабжение</span><span class="crumb-sep">/</span><strong>Пополнение склада</strong></div>
           <div class="topbar-right">
             <span class="source-date"><span class="pulse-dot"></span><span id="updated-label">Данные загружаются</span></span>
-            <button class="button button-dark" id="export-button" type="button"><span class="download-icon">↓</span>Экспорт CSV</button>
+            <button class="button button-dark" id="export-button" type="button"><span class="download-icon">↓</span>CSV на согласование</button>
           </div>
         </header>
 
@@ -133,16 +133,17 @@
                 <div><div class="section-overline">AI ЗАКУПОЧНЫЙ АГЕНТ</div><h2>Что проверить?</h2></div>
                 <span id="agent-mode-badge" class="mode-badge">DEMO</span>
               </div>
-              <p class="agent-copy">Опишите сценарий. Агент выберет поставщика и горизонт, запустит расчёт и объяснит результат.</p>
+              <p class="agent-copy">Попросите сводку, разбор SKU и выбросов, проверку данных или сравнение сценариев. Количества проверяет расчётный модуль.</p>
               <form id="agent-form">
                 <label class="sr-only" for="agent-query">Запрос агенту</label>
                 <textarea id="agent-query" rows="3" maxlength="1200" placeholder="Например: какие позиции IEK нужно заказать в ближайшие 45 дней при росте спроса на 15%?">Покажи срочные позиции IEK на 30 дней</textarea>
                 <div class="agent-form-bottom"><span class="privacy-note">Расчёт проверяется бизнес-правилами</span><button class="button button-green" id="agent-submit" type="submit">Запустить <span>→</span></button></div>
               </form>
-              <div class="suggestion-row"><button type="button" class="suggestion" data-prompt="Покажи срочные позиции IEK на 30 дней">Срочное по IEK</button><button type="button" class="suggestion" data-prompt="Пересчитай на 45 дней при росте спроса на 15%">Рост +15%</button></div>
+              <div class="suggestion-row"><button type="button" class="suggestion" data-prompt="Покажи срочные позиции IEK на 30 дней">Срочное по IEK</button><button type="button" class="suggestion" data-prompt="Проверь качество и свежесть данных, порог 14 дней">Качество данных</button><button type="button" class="suggestion" data-prompt="Какие аномальные продажи исключены из спроса?">Разбор выбросов</button><button type="button" class="suggestion" data-prompt="Что изменилось после сценария?">Сравнить сценарии</button><button type="button" class="suggestion" data-prompt="Объясни SKU 010400432">Объяснить SKU</button><button type="button" class="suggestion" data-prompt="Подготовь CSV на ручное согласование">CSV на согласование</button></div>
               <div class="agent-result" id="agent-result" hidden>
                 <div class="agent-result-label"><span class="result-check">✓</span><span id="agent-result-title">Расчёт проверен</span></div>
                 <div id="agent-answer" class="agent-answer"></div>
+                <ul id="agent-facts" class="agent-facts" hidden></ul>
                 <div class="agent-trace" id="agent-trace"></div>
               </div>
             </section>

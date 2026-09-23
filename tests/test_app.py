@@ -82,7 +82,8 @@ class ApiSmokeTests(unittest.TestCase):
         payload = json.loads(raw)
         self.assertEqual(status, 200)
         self.assertEqual(payload["mode"], "demo")
-        self.assertIn("calculate_replenishment_plan", payload["tool"])
+        self.assertEqual(payload["intent"], "summarize_replenishment_plan")
+        self.assertIn("summarize_replenishment_plan", payload["tool"])
         self.assertTrue(payload["result"]["recommendations"])
 
     def test_stockout_csv_validation_skips_unknown_sku_and_invalid_days(self):
