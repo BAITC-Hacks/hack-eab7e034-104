@@ -8,9 +8,7 @@ Hackathon team repository for 104
 
 4. 
 5. 
-6. 
-
-
+6. ttt
 7. 
 8. 
 
