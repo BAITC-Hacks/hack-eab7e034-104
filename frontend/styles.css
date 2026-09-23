@@ -295,3 +295,38 @@ tbody tr.supplier-divider td { padding-top: 8px; padding-bottom: 6px; color: #52
 #approval-status.approved{color:#1d7a58;font-weight:700}
 .topbar-right{flex-wrap:wrap}
 @media (max-width:900px){.topbar-right{gap:8px}.order-edit{width:78px}}
+
+
+/* Recommendation detail modal */
+.data-row{cursor:pointer}
+.data-row:hover{background:#f7faf8}
+.row-open{
+  width:28px;height:28px;border:0;border-radius:50%;background:#eef4f0;
+  color:#315c4c;font-size:20px;line-height:1;cursor:pointer;
+}
+.item-modal[hidden]{display:none}
+.item-modal{
+  position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;
+  padding:24px;background:rgba(11,24,19,.56);backdrop-filter:blur(3px);
+}
+.item-modal-card{
+  width:min(820px,96vw);max-height:88vh;overflow:auto;background:#fff;border-radius:16px;
+  box-shadow:0 28px 80px rgba(9,29,21,.28);padding:24px;color:#20342d;
+}
+.item-modal-head{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;padding-bottom:18px;border-bottom:1px solid #e7ece9}
+.item-modal-head h2{margin:5px 0 7px;font-size:20px;line-height:1.25}
+.modal-close{border:0;background:#f0f4f2;border-radius:50%;width:36px;height:36px;cursor:pointer;font-size:24px;color:#50635b}
+.item-modal-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:18px 0}
+.item-modal-grid>div{padding:12px;border:1px solid #e7ece9;border-radius:10px;background:#fafcfb}
+.item-modal-grid small{display:block;color:#7f8c86;font-size:9px;margin-bottom:5px}
+.item-modal-grid strong{font-size:12px}
+.item-explanation{padding:16px;border-radius:10px;background:#f4f8f5;border-left:3px solid #6a9b66}
+.item-explanation strong{font-size:11px}
+.item-explanation p{margin:7px 0 0;color:#4c5f57;font-size:10px;line-height:1.6}
+.item-source-note{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:14px;color:#88938d;font-size:9px}
+.modal-open{overflow:hidden}
+@media(max-width:700px){
+  .item-modal{padding:10px}
+  .item-modal-card{padding:16px}
+  .item-modal-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
