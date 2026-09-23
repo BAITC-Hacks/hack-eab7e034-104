@@ -159,7 +159,7 @@ function renderRows() {
         <span class="demand-cell">${escapeHtml(row.unit)}</span>
       </td>
       <td><span class="urgency ${urgencyClass(row.urgency)}">${escapeHtml(row.urgency)}</span></td>
-      <td><span class="row-open">›</span></td>
+      <td><button class="row-open" type="button" tabindex="-1" aria-label="Открыть разбор рекомендации">›</button></td>
     </tr>`;
   }).join('');
   body.querySelectorAll('.data-row').forEach((row) => row.addEventListener('click', () => showItemDetail(row.dataset.sku)));
@@ -202,21 +202,59 @@ function applyScenarioToControls(scenario) {
   byId('stockout-days').value = scenario.stockout_days || 0;
 }
 
+function closeItemModal() {
+  const modal = byId('item-modal');
+  if (!modal) return;
+  modal.hidden = true;
+  document.body.classList.remove('modal-open');
+}
+
 function showItemDetail(sku) {
   const row = state.result?.recommendations.find((item) => item.sku === sku);
-  const detail = byId('item-detail');
-  if (!row) return;
-  detail.hidden = false;
+  const modal = byId('item-modal');
+  const detail = byId('item-modal-content');
+  if (!row || !modal || !detail) return;
+
+  const managerQty = Number(state.edits[row.sku] ?? row.recommended_qty);
   detail.innerHTML = `
-    <h3>${escapeHtml(row.name)} · ${escapeHtml(row.sku)}</h3>
-    <p>${escapeHtml(row.explanation)}</p>
-    <div class="detail-facts">
-      <span>Поставщик: ${escapeHtml(row.supplier)}</span>
-      <span>MOQ: ${fmt(row.moq)} ${escapeHtml(row.unit)}</span>
-      <span>Покрытие: ${row.cover_days === null ? '—' : `${fmt(row.cover_days, 1)} дн.`}</span>
-      <span>Снимок остатка: ${escapeHtml(row.stock_snapshot || 'нет даты')}</span>
+    <div class="item-modal-head">
+      <div>
+        <div class="section-overline">РАЗБОР РЕКОМЕНДАЦИИ</div>
+        <h2>${escapeHtml(row.name || row.sku)}</h2>
+        <div class="product-meta"><span class="sku-code">${escapeHtml(row.sku)}</span><span class="category-dot"></span><span>${escapeHtml(row.category || 'Без категории')}</span></div>
+      </div>
+      <button class="modal-close" type="button" aria-label="Закрыть">×</button>
+    </div>
+
+    <div class="item-modal-grid">
+      <div><small>Поставщик</small><strong>${escapeHtml(row.supplier)}</strong></div>
+      <div><small>Прогноз</small><strong>${fmt(row.forecast_units, 1)} ${escapeHtml(row.unit)}</strong></div>
+      <div><small>Остаток</small><strong>${fmt(row.current_stock, 1)} ${escapeHtml(row.unit)}</strong></div>
+      <div><small>В пути</small><strong>${fmt(row.in_transit, 1)} ${escapeHtml(row.unit)}</strong></div>
+      <div><small>Рекомендация</small><strong>${fmt(row.recommended_qty, 1)} ${escapeHtml(row.unit)}</strong></div>
+      <div><small>Количество менеджера</small><strong>${fmt(managerQty, 1)} ${escapeHtml(row.unit)}</strong></div>
+      <div><small>MOQ</small><strong>${fmt(row.moq, 1)} ${escapeHtml(row.unit)}</strong></div>
+      <div><small>Приоритет</small><strong>${escapeHtml(row.urgency)}</strong></div>
+      <div><small>Покрытие</small><strong>${row.cover_days === null ? '—' : `${fmt(row.cover_days, 1)} дн.`}</strong></div>
+      <div><small>Сезонность</small><strong>${fmt(row.seasonality_factor, 2)}×</strong></div>
+      <div><small>Тренд</small><strong>${fmt(row.growth_factor, 2)}×</strong></div>
+      <div><small>Stockout-поправка</small><strong>+${fmt(row.stockout_compensation_units, 1)}</strong></div>
+    </div>
+
+    <div class="item-explanation">
+      <strong>Почему система предлагает это количество</strong>
+      <p>${escapeHtml(row.explanation)}</p>
+    </div>
+
+    <div class="item-source-note">
+      <span>Снимок остатка: ${escapeHtml(row.stock_snapshot || 'дата не указана')}</span>
       <span>${escapeHtml(row.stock_basis || '')}</span>
-    </div>`;
+    </div>
+  `;
+
+  detail.querySelector('.modal-close').addEventListener('click', closeItemModal);
+  modal.hidden = false;
+  document.body.classList.add('modal-open');
 }
 
 function renderAgentResult(payload) {
@@ -395,6 +433,12 @@ function exportCsv() {
 }
 
 function initEvents() {
+  byId('item-modal').addEventListener('click', (event) => {
+    if (event.target === byId('item-modal')) closeItemModal();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeItemModal();
+  });
   byId('supplier-filter').addEventListener('change', () => {
     renderRows();
     calculate();
